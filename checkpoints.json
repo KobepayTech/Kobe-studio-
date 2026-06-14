@@ -1,0 +1,40 @@
+{
+  "checkpoints": {
+    "anime": {
+      "model_name": "put_your_model_here",
+      "steps": 35,
+      "cfg_scale": 8,
+      "denoising_strength": 0.42,
+      "prompt": "anime artwork, vibrant, studio anime, highly detailed",
+      "negative_prompt": "deformed, low contrast, blurry, distorted face",
+      "controlnet_model": "diffusion_pytorch_model [a3cd7cd6]",
+      "controlnet_weight": 0.8,
+      "guidance_end": 1.0
+    },
+    "watercolor": {
+      "model_name": "put_your_model_here",
+      "steps": 35,
+      "cfg_scale": 8,
+      "denoising_strength": 0.42,
+      "prompt": "watercolor painting, vibrant, painterly, detailed, artistic",
+      "negative_prompt": "deformed, glitch, low contrast, noisy, distorted face",
+      "controlnet_model": "diffusion_pytorch_model [a3cd7cd6]",
+      "controlnet_weight": 0.6,
+      "guidance_end": 1.0
+    },
+    "comic": {
+      "model_name": "put_your_model_here",
+      "steps": 35,
+      "cfg_scale": 7,
+      "denoising_strength": 0.41,
+      "prompt": "comic art, graphic novel art, vibrant, highly detailed",
+      "negative_prompt": "deformed, glitch, noisy, distorted face",
+      "controlnet_model": "diffusion_pytorch_model [a3cd7cd6]",
+      "controlnet_weight": 0.6,
+      "guidance_end": 1.0
+    },
+    "none": { "model_name": null },
+    "distortion_lens_filter": { "model_name": null },
+    "canny_filter": { "model_name": null }
+  }
+}
