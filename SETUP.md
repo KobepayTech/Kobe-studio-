@@ -15,29 +15,42 @@ Open on the same computer:
 http://127.0.0.1:5000/main_page
 ```
 
+Admin:
+
+```text
+http://127.0.0.1:5000/admin
+```
+
+Default admin password is `admin`. For real use, set `KOBE_ADMIN_PASSWORD` before starting the app.
+
 Test this flow first:
 
 1. Allow camera permission.
 2. Confirm the back camera starts by default on iPhone.
 3. Use Switch Camera to change front/back.
 4. Take a photo.
-5. Choose Original / No AI.
-6. Confirm that the result page opens.
-7. Confirm that the result image appears.
-8. Confirm that QR code appears.
-9. Open `/admin_data` and check that the session appears.
+5. Optionally enter guest name/contact.
+6. Choose Original / No AI.
+7. Confirm progress polling moves from queued to completed.
+8. Confirm that the result page opens.
+9. Confirm that the result image appears.
+10. Confirm that QR code appears.
+11. Confirm that Print Photo works on the result page.
+12. Open `/admin` and check that the session appears in the gallery.
 
 ## 2. iPhone camera testing
 
 For iPhone Safari, the camera works best when the app is opened using HTTPS.
 
-Use one of these:
+Use:
 
-- Cloudflare Tunnel public HTTPS URL.
-- A proper HTTPS domain.
-- Localhost only if testing on the same device.
+```bash
+run_public.bat
+```
 
-The app now requests the back camera first using `facingMode: environment`, falls back to the front camera if needed, and includes a Switch Camera button.
+This starts the Flask app and Cloudflare Tunnel helper. When a `trycloudflare.com` URL appears, the helper saves it into `tunnel_url.txt` so QR links use the public HTTPS URL.
+
+The app requests the back camera first using `facingMode: environment`, falls back to the front camera if needed, and includes a Switch Camera button.
 
 ## 3. Connect Stable Diffusion
 
@@ -55,22 +68,37 @@ put_your_model_here
 
 with the exact checkpoint name shown in Automatic1111.
 
-## 4. Public sharing
+You can also update the Stable Diffusion API URL from the admin settings page.
 
-For event use, run Cloudflare Tunnel or use the same Wi-Fi LAN URL.
+## 4. Admin dashboard
 
-The app reads `tunnel_url.txt` when it exists. Put your public tunnel URL there, for example:
+The admin dashboard now includes:
 
-```text
-https://example.trycloudflare.com
-```
+- Event name
+- Brand color
+- Stable Diffusion API URL
+- Public tunnel URL
+- Printer name field
+- Print enabled switch
+- Session gallery
+- Result links
+- Delete session action
 
-## 5. Next development tasks
+## 5. Backend storage
 
-- Build full admin gallery UI using `/admin_data`.
-- Add proper admin login on the backend.
-- Add event branding: logo, theme color, event name.
-- Add guest phone number/email collection if needed.
-- Add print support.
-- Add queue/progress screen for slow AI generation.
-- Package for Windows with one-click installer.
+The app creates `kobe_studio.db` automatically. It stores:
+
+- settings
+- guests
+- sessions
+- status and progress
+- result paths
+- QR paths
+
+## 6. Remaining polish tasks
+
+- Add physical printer integration for automatic printing.
+- Add real payment or coin trigger hardware.
+- Add theme/logo upload.
+- Add model picker UI that writes selected model into `checkpoints.json`.
+- Package as Windows installer.
