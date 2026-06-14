@@ -9,7 +9,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open:
+Open on the same computer:
 
 ```text
 http://127.0.0.1:5000/main_page
@@ -18,14 +18,28 @@ http://127.0.0.1:5000/main_page
 Test this flow first:
 
 1. Allow camera permission.
-2. Take a photo.
-3. Choose Original / No AI.
-4. Confirm that the result page opens.
-5. Confirm that the result image appears.
-6. Confirm that QR code appears.
-7. Open `/admin_data` and check that the session appears.
+2. Confirm the back camera starts by default on iPhone.
+3. Use Switch Camera to change front/back.
+4. Take a photo.
+5. Choose Original / No AI.
+6. Confirm that the result page opens.
+7. Confirm that the result image appears.
+8. Confirm that QR code appears.
+9. Open `/admin_data` and check that the session appears.
 
-## 2. Connect Stable Diffusion
+## 2. iPhone camera testing
+
+For iPhone Safari, the camera works best when the app is opened using HTTPS.
+
+Use one of these:
+
+- Cloudflare Tunnel public HTTPS URL.
+- A proper HTTPS domain.
+- Localhost only if testing on the same device.
+
+The app now requests the back camera first using `facingMode: environment`, falls back to the front camera if needed, and includes a Switch Camera button.
+
+## 3. Connect Stable Diffusion
 
 Install and run Automatic1111 with API enabled:
 
@@ -41,7 +55,7 @@ put_your_model_here
 
 with the exact checkpoint name shown in Automatic1111.
 
-## 3. Public sharing
+## 4. Public sharing
 
 For event use, run Cloudflare Tunnel or use the same Wi-Fi LAN URL.
 
@@ -51,7 +65,7 @@ The app reads `tunnel_url.txt` when it exists. Put your public tunnel URL there,
 https://example.trycloudflare.com
 ```
 
-## 4. Next development tasks
+## 5. Next development tasks
 
 - Build full admin gallery UI using `/admin_data`.
 - Add proper admin login on the backend.
