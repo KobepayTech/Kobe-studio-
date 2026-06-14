@@ -3,33 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kobe Studio</title>
+  <title>{{ settings.event_name or 'Kobe Studio' }}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --brand: {{ settings.brand_color or '#2563eb' }}; }
     body { min-height: 100vh; display: grid; place-items: center; padding: 20px; background: #08090d; color: #f8fafc; font-family: system-ui, -apple-system, Segoe UI, sans-serif; }
     .wrap { width: min(920px, 100%); background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09); border-radius: 26px; padding: 28px; box-shadow: 0 30px 80px rgba(0,0,0,.35); }
     .brand { text-align: center; margin-bottom: 22px; }
-    .logo { width: 58px; height: 58px; border-radius: 18px; display: inline-grid; place-items: center; background: linear-gradient(135deg, #2563eb, #7c3aed); margin-bottom: 10px; font-size: 28px; }
+    .logo { width: 58px; height: 58px; border-radius: 18px; display: inline-grid; place-items: center; background: linear-gradient(135deg, var(--brand), #7c3aed); margin-bottom: 10px; font-size: 28px; }
     h1 { font-size: 30px; letter-spacing: -.04em; }
     .muted { color: rgba(248,250,252,.62); margin-top: 6px; }
     .videoBox { position: relative; aspect-ratio: 16/9; background: #000; border-radius: 18px; overflow: hidden; border: 1px solid rgba(255,255,255,.1); }
     video { width: 100%; height: 100%; object-fit: cover; }
     video.mirror { transform: scaleX(-1); }
     canvas { display: none; }
-    button, select { width: 100%; border: 0; border-radius: 14px; padding: 15px 18px; font-size: 15px; font-weight: 700; }
-    button { color: white; background: #2563eb; cursor: pointer; margin-top: 18px; }
+    button, select, input { width: 100%; border: 0; border-radius: 14px; padding: 15px 18px; font-size: 15px; font-weight: 700; }
+    button { color: white; background: var(--brand); cursor: pointer; margin-top: 18px; }
     button:disabled { opacity: .45; cursor: not-allowed; }
     button.secondary { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1); }
-    select { color: white; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1); margin-top: 12px; }
+    select, input { color: white; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1); margin-top: 12px; }
     option { background: #111827; }
     .cameraControls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .cameraControls button { margin-top: 18px; }
     .cameraStatus { min-height: 22px; font-size: 13px; color: rgba(248,250,252,.62); margin-top: 10px; text-align: center; }
-    .modal { display: none; position: fixed; inset: 0; place-items: center; padding: 18px; background: rgba(0,0,0,.78); backdrop-filter: blur(14px); z-index: 10; }
+    .modal { display: none; position: fixed; inset: 0; place-items: center; padding: 18px; background: rgba(0,0,0,.78); backdrop-filter: blur(14px); z-index: 10; overflow-y: auto; }
     .card { width: min(460px,100%); background: #11131a; border: 1px solid rgba(255,255,255,.1); border-radius: 24px; padding: 22px; }
     .card img { width: 100%; border-radius: 16px; margin-bottom: 12px; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .countdown { position: absolute; inset: 0; display: none; place-items: center; background: rgba(0,0,0,.25); font-size: 140px; font-weight: 900; }
+    .progressOuter { width: 100%; height: 12px; background: rgba(255,255,255,.10); border-radius: 999px; overflow: hidden; margin: 16px 0 8px; }
+    .progressInner { width: 0%; height: 100%; background: var(--brand); transition: width .3s ease; }
     .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid transparent; border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 8px; }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
@@ -38,7 +41,7 @@
   <main class="wrap">
     <section class="brand">
       <div class="logo">📸</div>
-      <h1>Kobe Studio</h1>
+      <h1>{{ settings.event_name or 'Kobe Studio' }}</h1>
       <p class="muted">Capture. Transform. Download by QR.</p>
     </section>
     <div class="videoBox">
@@ -56,6 +59,9 @@
   <div id="previewModal" class="modal">
     <div class="card">
       <img id="capturedImg" alt="Captured preview" />
+      <p class="muted">Optional guest record</p>
+      <input id="guestName" placeholder="Guest name (optional)" />
+      <input id="guestContact" placeholder="Phone or email (optional)" />
       <p class="muted">Use this photo?</p>
       <div class="grid">
         <button class="secondary" onclick="retake()">Retake</button>
@@ -80,6 +86,8 @@
         <option value="male">Male</option>
         <option value="female">Female</option>
       </select>
+      <div class="progressOuter"><div id="progressBar" class="progressInner"></div></div>
+      <p id="progressText" class="muted">Ready</p>
       <button id="transformBtn" onclick="startTransform()">Transform Image</button>
     </div>
   </div>
@@ -90,6 +98,8 @@
     const captureBtn = document.getElementById('captureBtn');
     const switchCameraBtn = document.getElementById('switchCameraBtn');
     const cameraStatus = document.getElementById('cameraStatus');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
     let capturedDataURL = '';
     let currentSession = '';
     let currentStream = null;
@@ -100,16 +110,10 @@
       captureBtn.disabled = true;
       switchCameraBtn.disabled = true;
       cameraStatus.textContent = facingMode === 'environment' ? 'Starting back camera...' : 'Starting front camera...';
-
       const constraints = {
-        video: {
-          facingMode: { ideal: facingMode },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        },
+        video: { facingMode: { ideal: facingMode }, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false
       };
-
       try {
         currentStream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = currentStream;
@@ -127,16 +131,12 @@
         }
         cameraStatus.textContent = 'Camera permission is required. Use HTTPS or localhost.';
         alert('Camera permission is required. On iPhone use HTTPS, localhost, or an installed PWA.');
-        captureBtn.disabled = true;
-        switchCameraBtn.disabled = true;
       }
     }
 
     function stopCamera() {
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-        currentStream = null;
-      }
+      if (currentStream) currentStream.getTracks().forEach(track => track.stop());
+      currentStream = null;
     }
 
     function switchCamera() {
@@ -147,6 +147,7 @@
     startCamera('environment');
 
     function capture() {
+      currentSession = '';
       captureBtn.disabled = true;
       switchCameraBtn.disabled = true;
       let count = 3;
@@ -177,11 +178,8 @@
       capturedDataURL = canvas.toDataURL('image/png');
       document.getElementById('capturedImg').src = capturedDataURL;
       document.getElementById('previewModal').style.display = 'grid';
-      fetch('/upload_temp', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: capturedDataURL })
-      }).then(r => r.json()).then(data => currentSession = data.session_id)
-        .catch(err => { console.error(err); alert('Photo upload failed.'); });
+      captureBtn.disabled = false;
+      switchCameraBtn.disabled = false;
     }
 
     function retake() {
@@ -195,23 +193,67 @@
       document.getElementById('styleModal').style.display = 'grid';
     }
 
-    function startTransform() {
-      if (!currentSession) return alert('Image is still uploading. Try again in a second.');
+    function setProgress(value, text) {
+      progressBar.style.width = `${value}%`;
+      progressText.textContent = text || `${value}%`;
+    }
+
+    async function uploadCapturedImage() {
+      const res = await fetch('/upload_temp', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: capturedDataURL,
+          camera_mode: currentFacingMode,
+          guest_name: document.getElementById('guestName').value,
+          guest_contact: document.getElementById('guestContact').value
+        })
+      });
+      const data = await res.json();
+      currentSession = data.session_id;
+      return currentSession;
+    }
+
+    async function pollStatus(sessionId) {
+      const timer = setInterval(async () => {
+        try {
+          const res = await fetch(`/status/${sessionId}`);
+          const data = await res.json();
+          setProgress(data.progress || 0, data.message || data.status);
+          if (data.status === 'completed') {
+            clearInterval(timer);
+            window.location.href = data.download_url;
+          }
+          if (data.status === 'error') {
+            clearInterval(timer);
+            alert(data.error || 'Processing failed.');
+            document.getElementById('transformBtn').disabled = false;
+            document.getElementById('transformBtn').textContent = 'Try Again';
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }, 1200);
+    }
+
+    async function startTransform() {
       const btn = document.getElementById('transformBtn');
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span>Processing...';
-      fetch('/transform', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: currentSession, style: styleSelect.value, gender: genderSelect.value })
-      })
-      .then(r => r.json())
-      .then(() => fetch('/finalize', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: currentSession })
-      }))
-      .then(r => r.json())
-      .then(out => window.location.href = out.download_url)
-      .catch(err => { console.error(err); alert('Transform failed.'); btn.disabled = false; btn.textContent = 'Try Again'; });
+      setProgress(5, 'Uploading photo...');
+      try {
+        const sessionId = currentSession || await uploadCapturedImage();
+        setProgress(15, 'Queued...');
+        await fetch('/transform', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId, style: styleSelect.value, gender: genderSelect.value })
+        });
+        pollStatus(sessionId);
+      } catch (err) {
+        console.error(err);
+        alert('Transform failed.');
+        btn.disabled = false;
+        btn.textContent = 'Try Again';
+      }
     }
   </script>
 </body>
