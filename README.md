@@ -6,8 +6,8 @@ It is based on the SnapPocket open-source AI photobooth workflow:
 
 - Camera capture in the browser
 - AI style transformation using Stable Diffusion / Automatic1111 img2img API
-- QR download page for guests
-- Admin gallery for monitoring generated images
+- QR result page for guests
+- Admin endpoint for monitoring generated sessions
 - Local LAN access with optional Cloudflare Tunnel
 
 ## Quick Start
@@ -25,16 +25,16 @@ Open:
 http://127.0.0.1:5000/main_page
 ```
 
-Admin:
+Admin page:
 
 ```text
 http://127.0.0.1:5000/admin
 ```
 
-Default admin password:
+Admin JSON endpoint:
 
 ```text
-admin
+http://127.0.0.1:5000/admin_data
 ```
 
 ## Stable Diffusion Setup
@@ -52,6 +52,8 @@ http://127.0.0.1:7860/sdapi/v1/img2img
 ```
 
 Edit `checkpoints.json` and replace `put_your_model_here` with your installed Stable Diffusion checkpoint name.
+
+If no real model name is configured, Kobe Studio falls back to local filters/original image so the booth can still run.
 
 ## Project Structure
 
