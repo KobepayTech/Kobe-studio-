@@ -10,7 +10,8 @@
     body { min-height: 100vh; display: grid; place-items: center; padding: 20px; background: #08090d; color: #f8fafc; font-family: system-ui, -apple-system, Segoe UI, sans-serif; }
     .wrap { width: min(920px, 100%); background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09); border-radius: 26px; padding: 28px; box-shadow: 0 30px 80px rgba(0,0,0,.35); }
     .brand { text-align: center; margin-bottom: 22px; }
-    .logo { width: 58px; height: 58px; border-radius: 18px; display: inline-grid; place-items: center; background: linear-gradient(135deg, var(--brand), #7c3aed); margin-bottom: 10px; font-size: 28px; }
+    .logo { width: 64px; height: 64px; border-radius: 18px; display: inline-grid; place-items: center; background: linear-gradient(135deg, var(--brand), #7c3aed); margin-bottom: 10px; font-size: 28px; overflow: hidden; }
+    .logo img { width: 100%; height: 100%; object-fit: cover; }
     h1 { font-size: 30px; letter-spacing: -.04em; }
     .muted { color: rgba(248,250,252,.62); margin-top: 6px; }
     .videoBox { position: relative; aspect-ratio: 16/9; background: #000; border-radius: 18px; overflow: hidden; border: 1px solid rgba(255,255,255,.1); }
@@ -33,6 +34,7 @@
     .countdown { position: absolute; inset: 0; display: none; place-items: center; background: rgba(0,0,0,.25); font-size: 140px; font-weight: 900; }
     .progressOuter { width: 100%; height: 12px; background: rgba(255,255,255,.10); border-radius: 999px; overflow: hidden; margin: 16px 0 8px; }
     .progressInner { width: 0%; height: 100%; background: var(--brand); transition: width .3s ease; }
+    .gateBox { display: none; padding: 14px; border: 1px dashed rgba(255,255,255,.18); border-radius: 14px; margin-top: 12px; color: rgba(248,250,252,.75); }
     .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid transparent; border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 8px; }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
@@ -40,7 +42,7 @@
 <body>
   <main class="wrap">
     <section class="brand">
-      <div class="logo">📸</div>
+      <div class="logo">{% if settings.logo_url %}<img src="{{ settings.logo_url }}" alt="Logo">{% else %}📸{% endif %}</div>
       <h1>{{ settings.event_name or 'Kobe Studio' }}</h1>
       <p class="muted">Capture. Transform. Download by QR.</p>
     </section>
@@ -86,6 +88,7 @@
         <option value="male">Male</option>
         <option value="female">Female</option>
       </select>
+      <div id="gateBox" class="gateBox">Waiting for hardware trigger...</div>
       <div class="progressOuter"><div id="progressBar" class="progressInner"></div></div>
       <p id="progressText" class="muted">Ready</p>
       <button id="transformBtn" onclick="startTransform()">Transform Image</button>
@@ -93,6 +96,7 @@
   </div>
 
   <script>
+    const SETTINGS = { gateRequired: {{ 'true' if settings.gate_required == 'true' else 'false' }} };
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const captureBtn = document.getElementById('captureBtn');
@@ -100,6 +104,7 @@
     const cameraStatus = document.getElementById('cameraStatus');
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
+    const gateBox = document.getElementById('gateBox');
     let capturedDataURL = '';
     let currentSession = '';
     let currentStream = null;
@@ -110,12 +115,8 @@
       captureBtn.disabled = true;
       switchCameraBtn.disabled = true;
       cameraStatus.textContent = facingMode === 'environment' ? 'Starting back camera...' : 'Starting front camera...';
-      const constraints = {
-        video: { facingMode: { ideal: facingMode }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-        audio: false
-      };
       try {
-        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+        currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facingMode }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
         video.srcObject = currentStream;
         await video.play();
         currentFacingMode = facingMode;
@@ -125,10 +126,7 @@
         cameraStatus.textContent = currentFacingMode === 'environment' ? 'Back camera ready' : 'Front camera ready';
       } catch (err) {
         console.error(err);
-        if (facingMode === 'environment') {
-          cameraStatus.textContent = 'Back camera failed. Trying front camera...';
-          return startCamera('user');
-        }
+        if (facingMode === 'environment') return startCamera('user');
         cameraStatus.textContent = 'Camera permission is required. Use HTTPS or localhost.';
         alert('Camera permission is required. On iPhone use HTTPS, localhost, or an installed PWA.');
       }
@@ -139,11 +137,7 @@
       currentStream = null;
     }
 
-    function switchCamera() {
-      const next = currentFacingMode === 'environment' ? 'user' : 'environment';
-      startCamera(next);
-    }
-
+    function switchCamera() { startCamera(currentFacingMode === 'environment' ? 'user' : 'environment'); }
     startCamera('environment');
 
     function capture() {
@@ -188,9 +182,16 @@
       switchCameraBtn.disabled = false;
     }
 
-    function openStyle() {
+    async function openStyle() {
       document.getElementById('previewModal').style.display = 'none';
       document.getElementById('styleModal').style.display = 'grid';
+      if (!currentSession) await uploadCapturedImage();
+      if (SETTINGS.gateRequired) {
+        gateBox.style.display = 'block';
+        document.getElementById('transformBtn').disabled = true;
+        setProgress(15, 'Waiting for hardware trigger...');
+        pollGate(currentSession);
+      }
     }
 
     function setProgress(value, text) {
@@ -201,37 +202,40 @@
     async function uploadCapturedImage() {
       const res = await fetch('/upload_temp', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          image: capturedDataURL,
-          camera_mode: currentFacingMode,
-          guest_name: document.getElementById('guestName').value,
-          guest_contact: document.getElementById('guestContact').value
-        })
+        body: JSON.stringify({ image: capturedDataURL, camera_mode: currentFacingMode, guest_name: document.getElementById('guestName').value, guest_contact: document.getElementById('guestContact').value })
       });
       const data = await res.json();
       currentSession = data.session_id;
       return currentSession;
     }
 
-    async function pollStatus(sessionId) {
+    function pollGate(sessionId) {
+      const timer = setInterval(async () => {
+        const res = await fetch(`/gate_status/${sessionId}`);
+        const data = await res.json();
+        if (data.gate_open) {
+          clearInterval(timer);
+          gateBox.textContent = 'Trigger received. Ready to transform.';
+          document.getElementById('transformBtn').disabled = false;
+          setProgress(20, 'Hardware trigger received.');
+        }
+      }, 1000);
+    }
+
+    function pollStatus(sessionId) {
       const timer = setInterval(async () => {
         try {
           const res = await fetch(`/status/${sessionId}`);
           const data = await res.json();
           setProgress(data.progress || 0, data.message || data.status);
-          if (data.status === 'completed') {
-            clearInterval(timer);
-            window.location.href = data.download_url;
-          }
+          if (data.status === 'completed') { clearInterval(timer); window.location.href = data.download_url; }
           if (data.status === 'error') {
             clearInterval(timer);
             alert(data.error || 'Processing failed.');
             document.getElementById('transformBtn').disabled = false;
             document.getElementById('transformBtn').textContent = 'Try Again';
           }
-        } catch (err) {
-          console.error(err);
-        }
+        } catch (err) { console.error(err); }
       }, 1200);
     }
 
@@ -239,14 +243,16 @@
       const btn = document.getElementById('transformBtn');
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span>Processing...';
-      setProgress(5, 'Uploading photo...');
+      setProgress(15, 'Queued...');
       try {
         const sessionId = currentSession || await uploadCapturedImage();
-        setProgress(15, 'Queued...');
-        await fetch('/transform', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: sessionId, style: styleSelect.value, gender: genderSelect.value })
-        });
+        const res = await fetch('/transform', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId, style: styleSelect.value, gender: genderSelect.value }) });
+        if (res.status === 402) {
+          gateBox.style.display = 'block';
+          gateBox.textContent = 'Waiting for hardware trigger...';
+          pollGate(sessionId);
+          return;
+        }
         pollStatus(sessionId);
       } catch (err) {
         console.error(err);
