@@ -13,6 +13,12 @@ dist/
 .env
 .env.local
 
+# Runtime database and logs
+kobe_studio.db
+*.db
+*.log
+tunnel_url.txt
+
 # Runtime media
 public/**/*.png
 public/**/*.jpg
