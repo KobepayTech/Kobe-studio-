@@ -1,0 +1,27 @@
+# Python
+**/__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.egg-info/
+build/
+dist/
+
+# Environment
+.env
+.env.local
+
+# Runtime media
+public/**/*.png
+public/**/*.jpg
+public/**/*.jpeg
+static/preview/**/*.png
+static/qr/**/*.png
+temp/**/*.png
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
