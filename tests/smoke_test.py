@@ -12,7 +12,7 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from app import app  # noqa: E402
+from app import app, set_setting  # noqa: E402
 
 
 def tiny_png_data_url() -> str:
@@ -24,6 +24,8 @@ def tiny_png_data_url() -> str:
 
 
 def main() -> int:
+    set_setting("gate_required", "false")
+    set_setting("auto_print_on_complete", "false")
     client = app.test_client()
 
     upload = client.post(
