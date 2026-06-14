@@ -15,9 +15,15 @@ It is based on the SnapPocket open-source AI photobooth workflow and now include
 - Local fallback filters when AI model is not configured
 - QR result page
 - Printable result page
+- Server-side print action from admin
+- Optional auto-print on completed sessions
+- Hardware gate trigger API for coin/cash/payment devices
+- Logo upload from admin
+- Model picker that writes selected model names into `checkpoints.json`
 - Admin login
 - Admin dashboard with event settings and session gallery
 - Cloudflare Tunnel helper for iPhone HTTPS testing
+- Windows build script and installer script
 
 ## Quick Start
 
@@ -77,9 +83,56 @@ Default API endpoint:
 http://127.0.0.1:7860/sdapi/v1/img2img
 ```
 
-Edit `checkpoints.json` and replace `put_your_model_here` with your installed Stable Diffusion checkpoint name.
+In the admin dashboard, click **Load Available Models**, copy a model name, choose a style, and save it. This updates `checkpoints.json`.
 
 If no real model name is configured, Kobe Studio falls back to local filters/original image so the booth can still run.
+
+## Hardware Gate Trigger
+
+Enable **Hardware gate required** in admin settings.
+
+Your hardware controller can unlock the latest waiting session by sending:
+
+```http
+POST /api/hardware/trigger
+Content-Type: application/json
+
+{"key":"change-this-key","amount":"1"}
+```
+
+Or unlock a specific session:
+
+```json
+{"key":"change-this-key","session_id":"SESSION_ID","amount":"1"}
+```
+
+## Printing
+
+- Browser print: available on the result page.
+- Server print: available in admin session cards.
+- Auto-print: enable `auto_print_on_complete` in admin settings.
+
+On Windows, server print uses the Windows default printer. Set the default printer in Windows settings before running events.
+
+## Windows Build
+
+Build the app folder:
+
+```bash
+build_windows.bat
+```
+
+This creates:
+
+```text
+dist/KobeStudio/
+```
+
+To create an installer, install Inno Setup and compile:
+
+```text
+packaging/kobe_studio.iss
+```
 
 ## Project Structure
 
@@ -87,14 +140,19 @@ If no real model name is configured, Kobe Studio falls back to local filters/ori
 app.py
 checkpoints.json
 requirements.txt
+requirements-build.txt
 run.bat
 run_public.bat
+build_windows.bat
 tools/cloudflare_tunnel.py
+packaging/kobe_studio.spec
+packaging/kobe_studio.iss
 templates/
   index.html
   login.html
   download.html
   admin.html
+uploads/
 static/
   preview/
   qr/
@@ -112,6 +170,7 @@ tunnel_url.txt
 public/*
 temp/*
 static/qr/*
+uploads/*
 ```
 
 ## Source Attribution
