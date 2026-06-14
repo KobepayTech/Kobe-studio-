@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kobe Studio Result</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #08090d; color: #f8fafc; font-family: system-ui, -apple-system, Segoe UI, sans-serif; }
+    .card { width: min(460px, 100%); text-align: center; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09); border-radius: 26px; padding: 24px; }
+    .badge { display: inline-block; margin-bottom: 12px; padding: 8px 14px; border-radius: 999px; background: rgba(16,185,129,.12); color: #34d399; font-weight: 700; }
+    h1 { font-size: 25px; margin-bottom: 16px; }
+    #preview { width: 100%; border-radius: 18px; border: 1px solid rgba(255,255,255,.12); margin-bottom: 18px; }
+    button, a.btn { display: block; width: 100%; text-decoration: none; border: 0; border-radius: 14px; padding: 15px 18px; font-size: 15px; font-weight: 800; color: white; background: #2563eb; cursor: pointer; margin-top: 12px; }
+    .success { background: #10b981; }
+    .secondary { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1); }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="badge">Ready</div>
+    <h1>Your Kobe Studio photo is ready</h1>
+    <img id="preview" src="/public/{{ folder }}/result.png" alt="Generated result" />
+    <a class="btn success" href="/public/{{ folder }}/result.png">Open Photo</a>
+    <button onclick="openQR()">Show QR Code</button>
+    <button class="secondary" onclick="window.location.href='{{ lan_url }}'">Back to Booth</button>
+    <div id="qrBox" style="display:none; margin-top:18px; background:white; padding:14px; border-radius:16px;">
+      <img src="/static/qr/{{ folder }}.png" alt="QR code" style="width:220px; height:220px;" />
+    </div>
+  </main>
+  <script>
+    function openQR() {
+      const box = document.getElementById('qrBox');
+      box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    }
+  </script>
+</body>
+</html>
