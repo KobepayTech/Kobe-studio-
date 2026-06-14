@@ -62,7 +62,49 @@ This starts the Flask app and Cloudflare Tunnel helper. When a `trycloudflare.co
 
 The app requests the back camera first using `facingMode: environment`, falls back to the front camera if needed, and includes a Switch Camera button.
 
-## 5. Connect Stable Diffusion
+## 5. Hardware gate / coin-device trigger
+
+In admin, set:
+
+```text
+Hardware gate required = true
+Hardware gate key = your-secret-device-key
+Gate amount = 1
+```
+
+The booth will wait after style selection until the trigger arrives.
+
+Hardware controller POST example:
+
+```http
+POST /api/hardware/trigger
+Content-Type: application/json
+
+{"key":"your-secret-device-key","session_id":"SESSION_ID","amount":"1"}
+```
+
+If `session_id` is omitted, the backend unlocks the latest waiting session.
+
+## 6. Printing
+
+Browser print is available on the result page.
+
+Server print is available in admin session cards.
+
+Auto-print can be enabled in admin:
+
+```text
+Auto print completed photos = true
+Print enabled = true
+```
+
+On Windows, server print uses the default printer configured in Windows.
+
+## 7. Logo upload
+
+Open admin, upload a logo image in the Logo Upload panel. The booth and admin header will use it immediately.
+
+## 8. Connect Stable Diffusion and choose models
 
 Install and run Automatic1111 with API enabled:
 
@@ -70,31 +112,37 @@ Install and run Automatic1111 with API enabled:
 webui-user.bat --api --xformers
 ```
 
-Then edit `checkpoints.json` and replace:
+In admin:
 
-```text
-put_your_model_here
+1. Confirm the Stable Diffusion API URL.
+2. Click Load Available Models.
+3. Copy/select a model name.
+4. Choose style: anime, comic, watercolor, etc.
+5. Save model to style.
+
+This writes the selected model directly into `checkpoints.json`.
+
+## 9. Windows packaging
+
+Build the Windows app folder:
+
+```bash
+build_windows.bat
 ```
 
-with the exact checkpoint name shown in Automatic1111.
+Output:
 
-You can also update the Stable Diffusion API URL from the admin settings page.
+```text
+dist\KobeStudio\
+```
 
-## 6. Admin dashboard
+To create a proper installer, install Inno Setup and compile:
 
-The admin dashboard now includes:
+```text
+packaging\kobe_studio.iss
+```
 
-- Event name
-- Brand color
-- Stable Diffusion API URL
-- Public tunnel URL
-- Printer name field
-- Print enabled switch
-- Session gallery
-- Result links
-- Delete session action
-
-## 7. Backend storage
+## 10. Backend storage
 
 The app creates `kobe_studio.db` automatically. It stores:
 
@@ -104,11 +152,12 @@ The app creates `kobe_studio.db` automatically. It stores:
 - status and progress
 - result paths
 - QR paths
+- hardware gate state
+- print state
 
-## 8. Remaining polish tasks
+## 11. Remaining polish tasks
 
-- Add physical printer integration for automatic printing.
-- Add real payment or coin trigger hardware.
-- Add theme/logo upload.
-- Add model picker UI that writes selected model into `checkpoints.json`.
-- Package as Windows installer.
+- Add advanced printer selection using pywin32 for exact printer routing.
+- Add real hardware firmware examples for ESP32/Arduino.
+- Add theme background upload.
+- Add signed admin users instead of one password.
