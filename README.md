@@ -2,13 +2,22 @@
 
 Kobe Studio is an AI photo booth and event studio platform for events, weddings, malls, schools, and brand activations.
 
-It is based on the SnapPocket open-source AI photobooth workflow:
+It is based on the SnapPocket open-source AI photobooth workflow and now includes a functional production-MVP backend.
 
-- Camera capture in the browser
-- AI style transformation using Stable Diffusion / Automatic1111 img2img API
-- QR result page for guests
-- Admin endpoint for monitoring generated sessions
-- Local LAN access with optional Cloudflare Tunnel
+## Current Features
+
+- Browser camera capture with iPhone back camera default
+- Switch Camera button for front/back camera
+- Optional guest name/contact record
+- SQLite database for sessions, guests, and settings
+- Queued image processing with progress polling
+- Stable Diffusion / Automatic1111 img2img API support
+- Local fallback filters when AI model is not configured
+- QR result page
+- Printable result page
+- Admin login
+- Admin dashboard with event settings and session gallery
+- Cloudflare Tunnel helper for iPhone HTTPS testing
 
 ## Quick Start
 
@@ -19,23 +28,40 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open:
+Open booth:
 
 ```text
 http://127.0.0.1:5000/main_page
 ```
 
-Admin page:
+Open admin:
 
 ```text
 http://127.0.0.1:5000/admin
 ```
 
-Admin JSON endpoint:
+Default admin password:
 
 ```text
-http://127.0.0.1:5000/admin_data
+admin
 ```
+
+Change it before real use:
+
+```bash
+set KOBE_ADMIN_PASSWORD=your-new-password
+python app.py
+```
+
+## Public iPhone Testing
+
+For iPhone camera access, use HTTPS. The simplest helper is:
+
+```bash
+run_public.bat
+```
+
+This starts the Flask app and Cloudflare Tunnel. The helper writes the public URL into `tunnel_url.txt`, and the backend uses that for QR links.
 
 ## Stable Diffusion Setup
 
@@ -45,7 +71,7 @@ Run Automatic1111 with API enabled:
 webui-user.bat --api --xformers
 ```
 
-The default API endpoint is:
+Default API endpoint:
 
 ```text
 http://127.0.0.1:7860/sdapi/v1/img2img
@@ -62,8 +88,11 @@ app.py
 checkpoints.json
 requirements.txt
 run.bat
+run_public.bat
+tools/cloudflare_tunnel.py
 templates/
   index.html
+  login.html
   download.html
   admin.html
 static/
@@ -71,6 +100,18 @@ static/
   qr/
 public/
 temp/
+```
+
+## Important Runtime Files
+
+These are generated locally and ignored by Git:
+
+```text
+kobe_studio.db
+tunnel_url.txt
+public/*
+temp/*
+static/qr/*
 ```
 
 ## Source Attribution
