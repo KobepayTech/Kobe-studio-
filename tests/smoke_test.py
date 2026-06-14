@@ -5,6 +5,7 @@ import io
 import sys
 import time
 from pathlib import Path
+from urllib.parse import urlparse
 
 from PIL import Image
 
@@ -51,7 +52,8 @@ def main() -> int:
     assert final_status["status"] == "completed", final_status
     assert final_status["download_url"], final_status
 
-    result_page = client.get(final_status["download_url"].replace("http://127.0.0.1:5000", ""))
+    result_path = urlparse(final_status["download_url"]).path
+    result_page = client.get(result_path)
     assert result_page.status_code == 200, result_page.get_data(as_text=True)
 
     print("Kobe Studio smoke test passed")
