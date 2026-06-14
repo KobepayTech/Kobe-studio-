@@ -3,11 +3,13 @@
 *.py[cod]
 *$py.class
 .venv/
+.venv-build/
 venv/
 env/
 *.egg-info/
 build/
 dist/
+installer/
 
 # Environment
 .env
@@ -26,6 +28,8 @@ public/**/*.jpeg
 static/preview/**/*.png
 static/qr/**/*.png
 temp/**/*.png
+uploads/*
+!uploads/.gitkeep
 
 # OS/editor
 .DS_Store
