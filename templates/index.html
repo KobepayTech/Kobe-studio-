@@ -13,7 +13,8 @@
     h1 { font-size: 30px; letter-spacing: -.04em; }
     .muted { color: rgba(248,250,252,.62); margin-top: 6px; }
     .videoBox { position: relative; aspect-ratio: 16/9; background: #000; border-radius: 18px; overflow: hidden; border: 1px solid rgba(255,255,255,.1); }
-    video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+    video { width: 100%; height: 100%; object-fit: cover; }
+    video.mirror { transform: scaleX(-1); }
     canvas { display: none; }
     button, select { width: 100%; border: 0; border-radius: 14px; padding: 15px 18px; font-size: 15px; font-weight: 700; }
     button { color: white; background: #2563eb; cursor: pointer; margin-top: 18px; }
@@ -21,6 +22,9 @@
     button.secondary { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1); }
     select { color: white; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1); margin-top: 12px; }
     option { background: #111827; }
+    .cameraControls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .cameraControls button { margin-top: 18px; }
+    .cameraStatus { min-height: 22px; font-size: 13px; color: rgba(248,250,252,.62); margin-top: 10px; text-align: center; }
     .modal { display: none; position: fixed; inset: 0; place-items: center; padding: 18px; background: rgba(0,0,0,.78); backdrop-filter: blur(14px); z-index: 10; }
     .card { width: min(460px,100%); background: #11131a; border: 1px solid rgba(255,255,255,.1); border-radius: 24px; padding: 22px; }
     .card img { width: 100%; border-radius: 16px; margin-bottom: 12px; }
@@ -38,10 +42,14 @@
       <p class="muted">Capture. Transform. Download by QR.</p>
     </section>
     <div class="videoBox">
-      <video id="video" autoplay playsinline></video>
+      <video id="video" autoplay playsinline muted></video>
       <div id="countdown" class="countdown">3</div>
     </div>
-    <button id="captureBtn" onclick="capture()">Take Photo</button>
+    <div class="cameraControls">
+      <button id="captureBtn" onclick="capture()">Take Photo</button>
+      <button id="switchCameraBtn" class="secondary" onclick="switchCamera()">Switch Camera</button>
+    </div>
+    <p id="cameraStatus" class="cameraStatus">Starting back camera...</p>
     <canvas id="canvas"></canvas>
   </main>
 
@@ -80,15 +88,67 @@
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const captureBtn = document.getElementById('captureBtn');
+    const switchCameraBtn = document.getElementById('switchCameraBtn');
+    const cameraStatus = document.getElementById('cameraStatus');
     let capturedDataURL = '';
     let currentSession = '';
+    let currentStream = null;
+    let currentFacingMode = 'environment';
 
-    navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1920 }, height: { ideal: 1080 } } })
-      .then(stream => video.srcObject = stream)
-      .catch(() => alert('Camera permission is required.'));
+    async function startCamera(facingMode = 'environment') {
+      stopCamera();
+      captureBtn.disabled = true;
+      switchCameraBtn.disabled = true;
+      cameraStatus.textContent = facingMode === 'environment' ? 'Starting back camera...' : 'Starting front camera...';
+
+      const constraints = {
+        video: {
+          facingMode: { ideal: facingMode },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
+        audio: false
+      };
+
+      try {
+        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = currentStream;
+        await video.play();
+        currentFacingMode = facingMode;
+        video.classList.toggle('mirror', currentFacingMode === 'user');
+        captureBtn.disabled = false;
+        switchCameraBtn.disabled = false;
+        cameraStatus.textContent = currentFacingMode === 'environment' ? 'Back camera ready' : 'Front camera ready';
+      } catch (err) {
+        console.error(err);
+        if (facingMode === 'environment') {
+          cameraStatus.textContent = 'Back camera failed. Trying front camera...';
+          return startCamera('user');
+        }
+        cameraStatus.textContent = 'Camera permission is required. Use HTTPS or localhost.';
+        alert('Camera permission is required. On iPhone use HTTPS, localhost, or an installed PWA.');
+        captureBtn.disabled = true;
+        switchCameraBtn.disabled = true;
+      }
+    }
+
+    function stopCamera() {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+        currentStream = null;
+      }
+    }
+
+    function switchCamera() {
+      const next = currentFacingMode === 'environment' ? 'user' : 'environment';
+      startCamera(next);
+    }
+
+    startCamera('environment');
 
     function capture() {
       captureBtn.disabled = true;
+      switchCameraBtn.disabled = true;
       let count = 3;
       const box = document.getElementById('countdown');
       box.style.display = 'grid';
@@ -107,21 +167,27 @@
       const ctx = canvas.getContext('2d');
       canvas.width = 1920;
       canvas.height = 1080;
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
+      ctx.save();
+      if (currentFacingMode === 'user') {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+      }
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
       capturedDataURL = canvas.toDataURL('image/png');
       document.getElementById('capturedImg').src = capturedDataURL;
       document.getElementById('previewModal').style.display = 'grid';
       fetch('/upload_temp', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: capturedDataURL })
-      }).then(r => r.json()).then(data => currentSession = data.session_id);
+      }).then(r => r.json()).then(data => currentSession = data.session_id)
+        .catch(err => { console.error(err); alert('Photo upload failed.'); });
     }
 
     function retake() {
       document.getElementById('previewModal').style.display = 'none';
       captureBtn.disabled = false;
+      switchCameraBtn.disabled = false;
     }
 
     function openStyle() {
