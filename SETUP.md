@@ -23,7 +23,17 @@ http://127.0.0.1:5000/admin
 
 Default admin password is `admin`. For real use, set `KOBE_ADMIN_PASSWORD` before starting the app.
 
-Test this flow first:
+## 2. Run backend smoke test
+
+After installing requirements, run:
+
+```bash
+python tests\smoke_test.py
+```
+
+This tests upload, queued transform, status polling, final result, and result page loading.
+
+## 3. Manual booth test
 
 1. Allow camera permission.
 2. Confirm the back camera starts by default on iPhone.
@@ -38,7 +48,7 @@ Test this flow first:
 11. Confirm that Print Photo works on the result page.
 12. Open `/admin` and check that the session appears in the gallery.
 
-## 2. iPhone camera testing
+## 4. iPhone camera testing
 
 For iPhone Safari, the camera works best when the app is opened using HTTPS.
 
@@ -52,7 +62,7 @@ This starts the Flask app and Cloudflare Tunnel helper. When a `trycloudflare.co
 
 The app requests the back camera first using `facingMode: environment`, falls back to the front camera if needed, and includes a Switch Camera button.
 
-## 3. Connect Stable Diffusion
+## 5. Connect Stable Diffusion
 
 Install and run Automatic1111 with API enabled:
 
@@ -70,7 +80,7 @@ with the exact checkpoint name shown in Automatic1111.
 
 You can also update the Stable Diffusion API URL from the admin settings page.
 
-## 4. Admin dashboard
+## 6. Admin dashboard
 
 The admin dashboard now includes:
 
@@ -84,7 +94,7 @@ The admin dashboard now includes:
 - Result links
 - Delete session action
 
-## 5. Backend storage
+## 7. Backend storage
 
 The app creates `kobe_studio.db` automatically. It stores:
 
@@ -95,7 +105,7 @@ The app creates `kobe_studio.db` automatically. It stores:
 - result paths
 - QR paths
 
-## 6. Remaining polish tasks
+## 8. Remaining polish tasks
 
 - Add physical printer integration for automatic printing.
 - Add real payment or coin trigger hardware.
