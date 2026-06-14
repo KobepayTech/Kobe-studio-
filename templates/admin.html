@@ -9,9 +9,10 @@
     body { background:#08090d; color:#f8fafc; font-family:system-ui,-apple-system,Segoe UI,sans-serif; padding:28px; }
     header { display:flex; align-items:center; gap:16px; border-bottom:1px solid rgba(255,255,255,.1); padding-bottom:18px; margin-bottom:22px; }
     a { color:#93c5fd; text-decoration:none; }
-    .logo { width:52px; height:52px; border-radius:16px; display:grid; place-items:center; background:linear-gradient(135deg, {{ settings.brand_color or '#2563eb' }}, #7c3aed); font-size:26px; }
+    .logo { width:52px; height:52px; border-radius:16px; display:grid; place-items:center; background:linear-gradient(135deg, {{ settings.brand_color or '#2563eb' }}, #7c3aed); font-size:26px; overflow:hidden; }
+    .logo img { width:100%; height:100%; object-fit:cover; }
     .grow { flex:1; }
-    .pill { padding:8px 12px; border-radius:999px; background:rgba(255,255,255,.08); color:rgba(248,250,252,.72); font-size:13px; }
+    .pill { padding:8px 12px; border-radius:999px; background:rgba(255,255,255,.08); color:rgba(248,250,252,.72); font-size:13px; display:inline-block; }
     .panel { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:20px; padding:18px; margin-bottom:20px; }
     .settings { display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:12px; }
     label { display:block; color:rgba(248,250,252,.66); font-size:13px; margin-bottom:6px; }
@@ -32,11 +33,12 @@
     .actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
     .actions form { margin:0; }
     .empty { text-align:center; padding:44px; border:1px dashed rgba(255,255,255,.16); border-radius:18px; }
+    code { background:rgba(255,255,255,.08); padding:2px 6px; border-radius:6px; }
   </style>
 </head>
 <body>
   <header>
-    <div class="logo">📸</div>
+    <div class="logo">{% if settings.logo_url %}<img src="{{ settings.logo_url }}" alt="Logo">{% else %}📸{% endif %}</div>
     <div class="grow">
       <h1>Kobe Studio Admin</h1>
       <p class="muted">{{ settings.event_name }}</p>
@@ -53,10 +55,40 @@
       <div><label>Brand color</label><input name="brand_color" value="{{ settings.brand_color }}"></div>
       <div><label>Stable Diffusion API URL</label><input name="sd_url" value="{{ settings.sd_url }}"></div>
       <div><label>Public tunnel URL</label><input name="tunnel_url" value="{{ settings.tunnel_url }}" placeholder="https://...trycloudflare.com"></div>
-      <div><label>Printer name</label><input name="printer_name" value="{{ settings.printer_name }}" placeholder="Optional"></div>
+      <div><label>Printer name</label><input name="printer_name" value="{{ settings.printer_name }}" placeholder="Default printer if empty"></div>
       <div><label>Print enabled</label><select name="print_enabled"><option value="true" {% if settings.print_enabled == 'true' %}selected{% endif %}>true</option><option value="false" {% if settings.print_enabled == 'false' %}selected{% endif %}>false</option></select></div>
+      <div><label>Auto print completed photos</label><select name="auto_print_on_complete"><option value="false" {% if settings.auto_print_on_complete == 'false' %}selected{% endif %}>false</option><option value="true" {% if settings.auto_print_on_complete == 'true' %}selected{% endif %}>true</option></select></div>
+      <div><label>Hardware gate required</label><select name="gate_required"><option value="false" {% if settings.gate_required == 'false' %}selected{% endif %}>false</option><option value="true" {% if settings.gate_required == 'true' %}selected{% endif %}>true</option></select></div>
+      <div><label>Hardware gate key</label><input name="gate_key" value="{{ settings.gate_key }}"></div>
+      <div><label>Gate amount</label><input name="gate_amount" value="{{ settings.gate_amount }}"></div>
       <div><label>&nbsp;</label><button type="submit">Save Settings</button></div>
     </form>
+  </section>
+
+  <section class="panel">
+    <h2>Logo Upload</h2><br>
+    <form method="post" action="/admin/logo" enctype="multipart/form-data" class="settings">
+      <div><label>Logo image</label><input type="file" name="logo" accept="image/*"></div>
+      <div><label>&nbsp;</label><button type="submit">Upload Logo</button></div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Model Picker</h2><br>
+    <p class="muted">Load model names from Automatic1111, copy a model name, then save it to a style. This writes directly into <code>checkpoints.json</code>.</p><br>
+    <form method="post" action="/admin/models" class="settings">
+      <div><label>Style</label><select name="style_key">{% for key, value in checkpoints.items() %}<option value="{{ key }}">{{ key }} — {{ value.model_name }}</option>{% endfor %}</select></div>
+      <div><label>Model name</label><input id="modelName" name="model_name" placeholder="Exact model name from Automatic1111"></div>
+      <div><label>&nbsp;</label><button type="submit">Save Model to Style</button></div>
+      <div><label>&nbsp;</label><button type="button" onclick="loadModels()">Load Available Models</button></div>
+    </form>
+    <p id="modelList" class="muted"></p>
+  </section>
+
+  <section class="panel">
+    <h2>Hardware Trigger API</h2><br>
+    <p class="muted">POST to <code>/api/hardware/trigger</code> with JSON:</p><br>
+    <code>{"key":"{{ settings.gate_key }}","session_id":"optional","amount":"{{ settings.gate_amount }}"}</code>
   </section>
 
   <section class="panel">
@@ -69,7 +101,9 @@
             <div>
               <strong>{{ item.event_name or settings.event_name }}</strong><br>
               <span class="muted">{{ item.created_at }}</span><br>
-              <span class="muted">Style: {{ item.style or 'none' }} · Camera: {{ item.camera_mode or 'unknown' }}</span>
+              <span class="muted">Style: {{ item.style or 'none' }} · Camera: {{ item.camera_mode or 'unknown' }}</span><br>
+              <span class="muted">Gate: {{ 'open' if item.gate_open else 'closed' }}{% if item.gate_amount %} · Amount: {{ item.gate_amount }}{% endif %}</span><br>
+              <span class="muted">Print: {{ item.print_status or 'not printed' }}{% if item.print_error %} · {{ item.print_error }}{% endif %}</span>
             </div>
             <span class="status {{ item.status }}">{{ item.status }}</span>
           </div>
@@ -87,6 +121,7 @@
             <p class="muted">No result yet.</p>
           {% endif %}
           <div class="actions">
+            <form method="post" action="/admin/sessions/{{ item.id }}/print"><button type="submit">Server Print</button></form>
             <form method="post" action="/admin/sessions/{{ item.id }}/delete" onsubmit="return confirm('Delete this session?')"><button class="danger" type="submit">Delete</button></form>
           </div>
         </article>
@@ -96,5 +131,23 @@
       <div class="empty muted">No sessions yet. Take a photo from the booth first.</div>
     {% endif %}
   </section>
+
+  <script>
+    async function loadModels() {
+      const box = document.getElementById('modelList');
+      box.textContent = 'Loading models...';
+      try {
+        const res = await fetch('/api/sd/models');
+        const data = await res.json();
+        if (!data.models || !data.models.length) {
+          box.textContent = data.error || 'No models returned. Check Automatic1111 API.';
+          return;
+        }
+        box.innerHTML = data.models.map(name => `<button type="button" style="margin-top:8px" onclick="document.getElementById('modelName').value='${name}'">${name}</button>`).join('');
+      } catch (err) {
+        box.textContent = 'Model loading failed.';
+      }
+    }
+  </script>
 </body>
 </html>
