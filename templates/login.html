@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kobe Studio Admin Login</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { min-height: 100vh; display: grid; place-items: center; background: #08090d; color: #f8fafc; font-family: system-ui, -apple-system, Segoe UI, sans-serif; padding: 20px; }
+    .card { width: min(380px, 100%); background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.10); border-radius: 24px; padding: 24px; }
+    h1 { font-size: 24px; margin-bottom: 8px; }
+    p { color: rgba(248,250,252,.64); margin-bottom: 18px; }
+    input, button { width: 100%; border-radius: 14px; padding: 14px 16px; font-size: 15px; }
+    input { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); color: white; }
+    button { margin-top: 14px; border: 0; background: #2563eb; color: white; font-weight: 800; cursor: pointer; }
+    .error { color: #fca5a5; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <form class="card" method="post">
+    <h1>Kobe Studio Admin</h1>
+    <p>Enter admin password to manage events and sessions.</p>
+    <input type="password" name="password" placeholder="Admin password" autofocus>
+    <button type="submit">Login</button>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  </form>
+</body>
+</html>
