@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kobe Studio Admin</title>
+  <style>
+    body { background:#08090d; color:#f8fafc; font-family:system-ui,sans-serif; padding:28px; }
+    header { border-bottom:1px solid rgba(255,255,255,.1); padding-bottom:18px; margin-bottom:22px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:16px; }
+    .card { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:18px; padding:16px; }
+    .muted { color:rgba(248,250,252,.6); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Kobe Studio Admin</h1>
+    <p class="muted">Open <code>/admin_data</code> to see the live JSON list of generated sessions.</p>
+  </header>
+  <div class="grid" id="content">
+    <div class="card">
+      <h2>Admin page ready</h2>
+      <p class="muted">Generated photo cards will be added in the next UI update.</p>
+    </div>
+  </div>
+</body>
+</html>
