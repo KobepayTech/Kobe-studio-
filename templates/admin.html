@@ -5,23 +5,96 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kobe Studio Admin</title>
   <style>
-    body { background:#08090d; color:#f8fafc; font-family:system-ui,sans-serif; padding:28px; }
-    header { border-bottom:1px solid rgba(255,255,255,.1); padding-bottom:18px; margin-bottom:22px; }
-    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:16px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background:#08090d; color:#f8fafc; font-family:system-ui,-apple-system,Segoe UI,sans-serif; padding:28px; }
+    header { display:flex; align-items:center; gap:16px; border-bottom:1px solid rgba(255,255,255,.1); padding-bottom:18px; margin-bottom:22px; }
+    a { color:#93c5fd; text-decoration:none; }
+    .logo { width:52px; height:52px; border-radius:16px; display:grid; place-items:center; background:linear-gradient(135deg, {{ settings.brand_color or '#2563eb' }}, #7c3aed); font-size:26px; }
+    .grow { flex:1; }
+    .pill { padding:8px 12px; border-radius:999px; background:rgba(255,255,255,.08); color:rgba(248,250,252,.72); font-size:13px; }
+    .panel { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:20px; padding:18px; margin-bottom:20px; }
+    .settings { display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:12px; }
+    label { display:block; color:rgba(248,250,252,.66); font-size:13px; margin-bottom:6px; }
+    input, select, button { width:100%; border-radius:12px; padding:12px 14px; font-size:14px; }
+    input, select { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); color:white; }
+    button { border:0; background:{{ settings.brand_color or '#2563eb' }}; color:white; font-weight:800; cursor:pointer; }
+    button.danger { background:#dc2626; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:16px; }
     .card { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:18px; padding:16px; }
     .muted { color:rgba(248,250,252,.6); }
+    .top { display:flex; justify-content:space-between; gap:12px; margin-bottom:12px; }
+    .status { font-size:12px; text-transform:uppercase; letter-spacing:.08em; padding:5px 9px; border-radius:999px; background:rgba(59,130,246,.15); color:#93c5fd; }
+    .status.completed { background:rgba(16,185,129,.16); color:#6ee7b7; }
+    .status.error { background:rgba(220,38,38,.16); color:#fca5a5; }
+    .imgs { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0; }
+    .box { background:#000; border-radius:12px; overflow:hidden; min-height:80px; display:grid; place-items:center; }
+    .box img { width:100%; display:block; }
+    .actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+    .actions form { margin:0; }
+    .empty { text-align:center; padding:44px; border:1px dashed rgba(255,255,255,.16); border-radius:18px; }
   </style>
 </head>
 <body>
   <header>
-    <h1>Kobe Studio Admin</h1>
-    <p class="muted">Open <code>/admin_data</code> to see the live JSON list of generated sessions.</p>
-  </header>
-  <div class="grid" id="content">
-    <div class="card">
-      <h2>Admin page ready</h2>
-      <p class="muted">Generated photo cards will be added in the next UI update.</p>
+    <div class="logo">📸</div>
+    <div class="grow">
+      <h1>Kobe Studio Admin</h1>
+      <p class="muted">{{ settings.event_name }}</p>
     </div>
-  </div>
+    <a class="pill" href="/main_page">Booth</a>
+    <a class="pill" href="/admin_data">JSON</a>
+    <a class="pill" href="/logout">Logout</a>
+  </header>
+
+  <section class="panel">
+    <h2>Event Settings</h2><br>
+    <form method="post" action="/admin/settings" class="settings">
+      <div><label>Event name</label><input name="event_name" value="{{ settings.event_name }}"></div>
+      <div><label>Brand color</label><input name="brand_color" value="{{ settings.brand_color }}"></div>
+      <div><label>Stable Diffusion API URL</label><input name="sd_url" value="{{ settings.sd_url }}"></div>
+      <div><label>Public tunnel URL</label><input name="tunnel_url" value="{{ settings.tunnel_url }}" placeholder="https://...trycloudflare.com"></div>
+      <div><label>Printer name</label><input name="printer_name" value="{{ settings.printer_name }}" placeholder="Optional"></div>
+      <div><label>Print enabled</label><select name="print_enabled"><option value="true" {% if settings.print_enabled == 'true' %}selected{% endif %}>true</option><option value="false" {% if settings.print_enabled == 'false' %}selected{% endif %}>false</option></select></div>
+      <div><label>&nbsp;</label><button type="submit">Save Settings</button></div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Sessions</h2><br>
+    {% if sessions %}
+      <div class="grid">
+        {% for item in sessions %}
+        <article class="card">
+          <div class="top">
+            <div>
+              <strong>{{ item.event_name or settings.event_name }}</strong><br>
+              <span class="muted">{{ item.created_at }}</span><br>
+              <span class="muted">Style: {{ item.style or 'none' }} · Camera: {{ item.camera_mode or 'unknown' }}</span>
+            </div>
+            <span class="status {{ item.status }}">{{ item.status }}</span>
+          </div>
+          <p class="muted">Progress: {{ item.progress }}% {% if item.error %}· {{ item.error }}{% endif %}</p>
+          {% if item.public_id %}
+            <div class="imgs">
+              <div class="box"><img src="/public/{{ item.public_id }}/raw.png" alt="Raw image"></div>
+              <div class="box"><img src="/public/{{ item.public_id }}/result.png" alt="Result image"></div>
+            </div>
+            <div class="actions">
+              <a class="pill" href="/dl/{{ item.public_id }}/">Open Result</a>
+              <a class="pill" href="/public/{{ item.public_id }}/result.png">Image</a>
+            </div>
+          {% else %}
+            <p class="muted">No result yet.</p>
+          {% endif %}
+          <div class="actions">
+            <form method="post" action="/admin/sessions/{{ item.id }}/delete" onsubmit="return confirm('Delete this session?')"><button class="danger" type="submit">Delete</button></form>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty muted">No sessions yet. Take a photo from the booth first.</div>
+    {% endif %}
+  </section>
 </body>
 </html>
