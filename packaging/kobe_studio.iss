@@ -7,7 +7,7 @@
 #define MyAppExeName "KobeStudio.exe"
 
 [Setup]
-AppId={{D35F7D4A-5A9A-4D72-9156-KOBESTUDIO}}
+AppId=KobeStudioApp
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
