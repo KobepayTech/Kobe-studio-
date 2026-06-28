@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 const MUAPI_BASE = 'https://api.muapi.ai';
 
 function getApiKey(request) {
+    if (process.env.MUAPI_PLATFORM_KEY) return process.env.MUAPI_PLATFORM_KEY;
     const headerKey = request.headers.get('x-api-key');
     if (headerKey) return headerKey;
     const cookieKey = request.cookies.get('muapi_key')?.value;

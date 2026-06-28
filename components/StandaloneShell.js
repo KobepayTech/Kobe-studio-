@@ -11,6 +11,12 @@ const DesignAgentStudio = dynamic(() => import('studio').then(mod => mod.DesignA
 });
 import axios from 'axios';
 import ApiKeyModal from './ApiKeyModal';
+import CreditBadge from './CreditBadge';
+
+// SaaS mode: the platform holds the MuAPI key and bills users in credits.
+// When enabled we skip the bring-your-own-key modal (auth is enforced by
+// middleware + the gated API routes) and show the kobeAi credit balance.
+const SAAS_MODE = process.env.NEXT_PUBLIC_SAAS_MODE === 'true';
 
 const TABS = [
   { id: 'image',   label: 'Image Studio' },
@@ -141,9 +147,14 @@ export default function StandaloneShell() {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       setApiKey(stored);
-      fetchBalance(stored);
+      if (!SAAS_MODE) fetchBalance(stored);
       // Sync cookie immediately on mount to establish identity for background requests
       document.cookie = `muapi_key=${stored}; path=/; max-age=31536000; SameSite=Lax`;
+    } else if (SAAS_MODE) {
+      // In SaaS mode there is no user-supplied key; the server uses the platform
+      // key after authenticating the session. Set a placeholder so the studio
+      // components proceed and skip the API-key modal.
+      setApiKey('kobeai-session');
     }
   }, [fetchBalance]);
 
@@ -236,7 +247,7 @@ export default function StandaloneShell() {
     </div>
   );
 
-  if (!apiKey) {
+  if (!apiKey && !SAAS_MODE) {
     return <ApiKeyModal onSave={handleKeySave} />;
   }
 
@@ -332,14 +343,18 @@ export default function StandaloneShell() {
 
           {/* Right: Actions */}
           <div className="flex-shrink-0 flex items-center gap-4">
-            <div className="flex items-center gap-3 bg-white/5 px-3 py-1.5 rounded-full border border-white/5 transition-colors">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <div className="flex flex-col">
-                <span className="text-xs font-bold text-white/90">
-                  ${balance !== null ? `${balance}` : '---'}
-                </span>
+            {SAAS_MODE ? (
+              <CreditBadge />
+            ) : (
+              <div className="flex items-center gap-3 bg-white/5 px-3 py-1.5 rounded-full border border-white/5 transition-colors">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-white/90">
+                    ${balance !== null ? `${balance}` : '---'}
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
 
             <button
               onClick={() => setShowSettings(true)}

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 const MUAPI_BASE = 'https://api.muapi.ai';
 
 function getApiKey(request) {
+    if (process.env.MUAPI_PLATFORM_KEY) return process.env.MUAPI_PLATFORM_KEY;
     const authHeader = request.headers.get('Authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
         return authHeader.substring(7);

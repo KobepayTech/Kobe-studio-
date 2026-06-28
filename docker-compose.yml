@@ -4,6 +4,43 @@ services:
     container_name: kobe-ai
     ports:
       - "3001:3000"
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
+      # Inside the compose network, reach Postgres/Mailhog by service name.
+      - DATABASE_URL=postgresql://kobe:${POSTGRES_PASSWORD:-kobe}@db:5432/kobeai?schema=public
+      - EMAIL_SERVER_HOST=${EMAIL_SERVER_HOST:-mailhog}
+      - EMAIL_SERVER_PORT=${EMAIL_SERVER_PORT:-1025}
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: kobe-ai-db
+    environment:
+      - POSTGRES_USER=kobe
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-kobe}
+      - POSTGRES_DB=kobeai
+    volumes:
+      - kobe_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kobe -d kobeai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # Local SMTP catcher for dev magic-link emails. View them at http://localhost:8025
+  # In production, point EMAIL_SERVER_* at a real SMTP provider and remove this.
+  mailhog:
+    image: mailhog/mailhog
+    container_name: kobe-ai-mailhog
+    ports:
+      - "8025:8025"
+    restart: unless-stopped
+
+volumes:
+  kobe_pgdata:

@@ -1,33 +1,19 @@
-import { NextResponse } from 'next/server';
+import NextAuth from 'next-auth';
+import { authConfig } from '@/lib/auth.config';
 
-export function middleware(request) {
-    const url = request.nextUrl;
-    
-    // Catch requests to /api/workflow, /api/app, and /api/v1
-    const isMuApi = url.pathname.startsWith('/api/workflow') || 
-                    url.pathname.startsWith('/api/app') || 
-                    url.pathname.startsWith('/api/v1');
+// Edge-safe auth instance (no Prisma/Nodemailer) for route protection.
+// The `authorized` callback in authConfig gates /studio, /account, etc.
+//
+// NOTE: we no longer rewrite /api/v1 to MuAPI here — in SaaS mode those
+// requests must hit the gated Node route handlers (app/api/v1/...) which
+// enforce auth + credit metering and inject the platform key.
+export const { auth: middleware } = NextAuth(authConfig);
 
-    if (isMuApi) {
-        // Exclude paths that have their own dedicated route handlers with custom logic
-        const isHandledByRoute = url.pathname.startsWith('/api/v1/creative-agent') || 
-                                url.pathname.startsWith('/api/v1/get_upload_url') ||
-                                url.pathname.startsWith('/api/v1/upload-binary');
+export default middleware;
 
-        if (url.pathname.startsWith('/api/v1') && !isHandledByRoute) {
-            const targetUrl = new URL(url.pathname + url.search, 'https://api.muapi.ai');
-            return NextResponse.rewrite(targetUrl);
-        }
-    }
-
-    return NextResponse.next();
-}
-
-// Match the paths we want to proxy
 export const config = {
-    matcher: [
-        '/api/workflow/:path*', 
-        '/api/app/:path*',
-        '/api/v1/:path*'
-    ],
+  matcher: [
+    // Run on everything except Next internals, auth endpoints, and static files.
+    '/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|gif|webp|ico)$).*)',
+  ],
 };

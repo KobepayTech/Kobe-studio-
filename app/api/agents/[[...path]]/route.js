@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 const MUAPI_BASE = 'https://api.muapi.ai';
 
 function getApiKey(request) {
+    if (process.env.MUAPI_PLATFORM_KEY) return process.env.MUAPI_PLATFORM_KEY;
     // Priority 1: Direct x-api-key header
     const headerKey = request.headers.get('x-api-key');
     if (headerKey) return headerKey;
