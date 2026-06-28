@@ -1,7 +1,0 @@
-Flask>=3.0,<4.0
-numpy>=1.26
-opencv-python>=4.9
-Pillow>=10.0
-qrcode>=7.4
-requests>=2.31
-watchdog>=4.0

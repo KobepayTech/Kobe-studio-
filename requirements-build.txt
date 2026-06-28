@@ -1,2 +1,0 @@
-# Build-only dependency for creating Windows executable
-pyinstaller>=6.0
